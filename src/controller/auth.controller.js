@@ -24,14 +24,14 @@ export default {
     res.cookie("jwt", access_token, {
       maxAge: 7 * 24 * 60 * 60 * 1000,
       httpOnly: true,
-      sameSite: "Strict",
+      sameSite: "None",
       secure: true, 
     });
 
     res.cookie("jwt_refresh", refresh_token, {
       maxAge: 7 * 24 * 60 * 60 * 1000,
       httpOnly: true,
-      sameSite: "Strict",
+      sameSite: "None",
       secure: true, 
     });
 

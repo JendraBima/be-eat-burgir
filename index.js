@@ -11,7 +11,7 @@ const initFunctions = () => {
   app.use(cors({
     origin: [
       'http://localhost:5173', 
-      'https://eat-burgir.vercel.app'
+      'https://eat-burgir.vercel.app' 
     ] ,
     credentials: true 
   }));
