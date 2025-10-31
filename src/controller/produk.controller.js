@@ -1,11 +1,13 @@
+import { supabase } from "../utils/supabase/client.js";
+import multer from "multer";
+import { v4 as uuidv4 } from "uuid";
+import { environment } from "../utils/environment.js";
 
-import { supabase } from '../utils/supabase/client.js';
+const upload = multer({ storage: multer.memoryStorage() });
+const supabaseUrl = environment.SUPABASE_URL;
+export const uploadMiddleware = upload.single("image");
 
 export default {
-  /**
-   * @param {import('express').Request} req
-   * @param {import('express').Response} res
-   */
   async getAll(req, res) {
     const { data, error } = await supabase
       .from("products")
@@ -28,10 +30,6 @@ export default {
     });
   },
 
-  /**
-   * @param {import('express').Request} req
-   * @param {import('express').Response} res
-   */
   async getById(req, res) {
     const { id } = req.params;
     const { data, error } = await supabase
@@ -55,92 +53,178 @@ export default {
     });
   },
 
-  /**
-   * @param {import('express').Request} req
-   * @param {import('express').Response} res
-   */
   async create(req, res) {
-    const { name, description, price, stock, image } = req.body;
+    try {
+      const { name, description, price } = req.body;
 
-    const { data, error } = await supabase
-      .from("products")
-      .insert([{ name, description, price, stock, image }])
-      .select();
+      const parsedPrice = parseFloat(price) || 0;
 
-    if (error) {
+      let imageUrl = null;
+
+      if (req.file) {
+        const fileExt = req.file.originalname.split(".").pop();
+        const fileName = `${uuidv4()}.${fileExt}`;
+        const filePath = `produk/images/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("eat-burgir-bucket")
+          .upload(filePath, req.file.buffer, {
+            contentType: req.file.mimetype,
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage
+          .from("eat-burgir-bucket")
+          .getPublicUrl(filePath);
+
+        imageUrl = publicUrlData.publicUrl;
+      }
+
+      const { data, error } = await supabase
+        .from("products")
+        .insert([
+          {
+            name,
+            description,
+            price: parsedPrice,
+            image: imageUrl,
+          },
+        ])
+        .select();
+
+      if (error) throw error;
+
+      res.status(201).json({
+        status: true,
+        pesan: "Produk berhasil ditambahkan",
+        data: data[0],
+      });
+    } catch (error) {
       console.error("Error create:", error.message);
-      return res.status(400).json({
+      res.status(400).json({
         status: false,
         pesan: "Gagal menambahkan produk",
         error: error.message,
       });
     }
-
-    return res.status(201).json({
-      status: true,
-      pesan: "Produk berhasil ditambahkan",
-      data: data[0],
-    });
   },
 
-  /**
-   * @param {import('express').Request} req
-   * @param {import('express').Response} res
-   */
   async update(req, res) {
-    const { id } = req.params;
-    const { name, description, price, stock, image } = req.body;
+    try {
+      const { id } = req.params;
+      const { name, description, price } = req.body;
 
-    const { data, error } = await supabase
-      .from("products")
-      .update({
-        name,
-        description,
-        price,
-        stock,
-        image,
-        updated_at: new Date(),
-      })
-      .eq("id", id)
-      .select();
+      const parsedPrice = parseFloat(price) || 0;
 
-    if (error) {
+      let imageUrl = req.body.image || null;
+
+      const { data: product, error: fetchError } = await supabase
+        .from("products")
+        .select("image")
+        .eq("id", id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      if (req.file) {
+        if (product?.image) {
+          const path = product.image.split(
+            `${supabaseUrl}/storage/v1/object/public/eat-burgir-bucket/`
+          )[1];
+          const { error: deleteError } = await supabase.storage
+            .from("eat-burgir-bucket")
+            .remove([path]);
+          if (deleteError)
+            console.warn("Gagal hapus gambar:", deleteError.message);
+        }
+      }
+      if (req.file) {
+        const fileExt = req.file.originalname.split(".").pop();
+        const fileName = `${uuidv4()}.${fileExt}`;
+        const filePath = `produk/images/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("eat-burgir-bucket")
+          .upload(filePath, req.file.buffer, {
+            contentType: req.file.mimetype,
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage
+          .from("eat-burgir-bucket")
+          .getPublicUrl(filePath);
+
+        imageUrl = publicUrlData.publicUrl;
+      }
+
+      const { data, error } = await supabase
+        .from("products")
+        .update({
+          name,
+          description,
+          price: parsedPrice,
+          image: imageUrl,
+          updated_at: new Date(),
+        })
+        .eq("id", id)
+        .select();
+
+      if (error) throw error;
+
+      res.status(200).json({
+        status: true,
+        pesan: "Produk berhasil diperbarui",
+        data: data[0],
+      });
+    } catch (error) {
       console.error("Error update:", error.message);
-      return res.status(400).json({
+      res.status(400).json({
         status: false,
         pesan: "Gagal memperbarui produk",
         error: error.message,
       });
     }
-
-    return res.status(200).json({
-      status: true,
-      pesan: "Produk berhasil diperbarui",
-      data: data[0],
-    });
   },
 
-  /**
-   * @param {import('express').Request} req
-   * @param {import('express').Response} res
-   */
   async remove(req, res) {
-    const { id } = req.params;
+    try {
+      const { id } = req.params;
+      const { data: product, error: fetchError } = await supabase
+        .from("products")
+        .select("image")
+        .eq("id", id)
+        .single();
 
-    const { error } = await supabase.from("products").delete().eq("id", id);
+      if (fetchError) throw fetchError;
 
-    if (error) {
+      if (product?.image) {
+        const path = product.image.split(
+          `${supabaseUrl}/storage/v1/object/public/eat-burgir-bucket/`
+        )[1];
+        console.log("path", path);
+        const { error: deleteError } = await supabase.storage
+          .from("eat-burgir-bucket")
+          .remove([path]);
+        if (deleteError)
+          console.warn("Gagal hapus gambar:", deleteError.message);
+      }
+
+      const { error } = await supabase.from("products").delete().eq("id", id);
+      if (error) throw error;
+
+      res.status(200).json({
+        status: true,
+        pesan: "Produk berhasil dihapus",
+      });
+    } catch (error) {
       console.error("Error delete:", error.message);
-      return res.status(400).json({
+      res.status(400).json({
         status: false,
         pesan: "Gagal menghapus produk",
         error: error.message,
       });
     }
-
-    return res.status(200).json({
-      status: true,
-      pesan: "Produk berhasil dihapus",
-    });
   },
 };

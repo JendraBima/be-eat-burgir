@@ -90,10 +90,34 @@ export default {
 
   async AuthMe(req, res) {
     try {
+      const { data, error } = await supabase.auth.getUser();
+
+      if (error) {
+        console.error("Error Mengambil Data User:", error.message);
+        return res.status(500).json({
+          status: false,
+          pesan: "Internal Server Error",
+        });
+      }
+
+      const {data:userData, error:userError} = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", data.user.id)
+        .single();
+
+      if (userError) {
+        console.error("Error Mengambil Data User dari tabel users:", userError.message);
+        return res.status(500).json({
+          status: false,
+          pesan: "Internal Server Error",
+        });
+      }
+
       return res.status(200).json({
         status: true,
-        pesan: "Berhasil Mengambil Data User",
-        user: req.user,
+        pesan: "Berhasil mengambil data user",
+        data: userData,
       });
     } catch (error) {
       console.error("Error Mengambil Data User:", error.message);

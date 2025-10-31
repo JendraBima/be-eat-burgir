@@ -23,6 +23,7 @@ export const authMiddleware = async (req, res, next) => {
     req.user = data.user;
 
     next();
+    
   } catch (err) {
     console.error("AuthMiddleware Error:", err);
     return res.status(500).json({
