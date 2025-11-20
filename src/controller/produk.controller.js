@@ -4,8 +4,8 @@ import { v4 as uuidv4 } from "uuid";
 import { environment } from "../utils/environment.js";
 
 const upload = multer({ storage: multer.memoryStorage() });
-const supabaseUrl = environment.SUPABASE_URL;
 export const uploadMiddleware = upload.single("image");
+const supabaseUrl = environment.SUPABASE_URL;
 
 export default {
   async getAll(req, res) {
@@ -55,7 +55,7 @@ export default {
 
   async create(req, res) {
     try {
-      const { name, description, price } = req.body;
+      const { name, description, price, stock } = req.body;
 
       const parsedPrice = parseFloat(price) || 0;
 
@@ -89,6 +89,7 @@ export default {
             description,
             price: parsedPrice,
             image: imageUrl,
+            stock,
           },
         ])
         .select();
@@ -113,12 +114,12 @@ export default {
   async update(req, res) {
     try {
       const { id } = req.params;
-      const { name, description, price } = req.body;
+      const { name, description, price, stock } = req.body;
 
       const parsedPrice = parseFloat(price) || 0;
+      const parsedStock = parseInt(stock) || 0;
 
-      let imageUrl = req.body.image || null;
-
+      // Fetch current product to get existing image
       const { data: product, error: fetchError } = await supabase
         .from("products")
         .select("image")
@@ -127,7 +128,12 @@ export default {
 
       if (fetchError) throw fetchError;
 
+      // Start with existing image
+      let imageUrl = product?.image || null;
+
+      // Only update image if new file is provided
       if (req.file) {
+        // Delete old image if exists
         if (product?.image) {
           const path = product.image.split(
             `${supabaseUrl}/storage/v1/object/public/eat-burgir-bucket/`
@@ -138,8 +144,8 @@ export default {
           if (deleteError)
             console.warn("Gagal hapus gambar:", deleteError.message);
         }
-      }
-      if (req.file) {
+
+        // Upload new image
         const fileExt = req.file.originalname.split(".").pop();
         const fileName = `${uuidv4()}.${fileExt}`;
         const filePath = `produk/images/${fileName}`;
@@ -159,15 +165,23 @@ export default {
         imageUrl = publicUrlData.publicUrl;
       }
 
+      // Prepare update data
+      const updateData = {
+        name,
+        description,
+        price: parsedPrice,
+        stock: parsedStock,
+        updated_at: new Date(),
+      };
+
+      // Only update image if it changed
+      if (req.file) {
+        updateData.image = imageUrl;
+      }
+
       const { data, error } = await supabase
         .from("products")
-        .update({
-          name,
-          description,
-          price: parsedPrice,
-          image: imageUrl,
-          updated_at: new Date(),
-        })
+        .update(updateData)
         .eq("id", id)
         .select();
 

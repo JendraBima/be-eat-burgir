@@ -9,7 +9,7 @@ export default {
   async getAll(req, res) {
     const { data, error } = await supabase
       .from("pesanan")
-      .select(`*, users(name, phone, address, avatar)`)
+      .select(`*, users(name, phone, address, image)`)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -36,7 +36,7 @@ export default {
     const { id } = req.params;
     const { data, error } = await supabase
       .from("pesanan")
-      .select(`*, users(name, phone, address, avatar)`)
+      .select(`*, users(name, phone, address, image)`)
       .eq("id", id)
       .single();
 

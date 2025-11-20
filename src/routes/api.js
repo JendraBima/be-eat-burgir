@@ -19,8 +19,8 @@ router.get("/logout", authControllers.AuthLogout);
 router.get("/user", authMiddleware, authControllers.AuthMe);
 
 // Produk routes
-router.get("/products",authMiddleware ,ProductController.getAll);
-router.get("/products/:id",authMiddleware ,ProductController.getById);
+router.get("/products", authMiddleware, ProductController.getAll);
+router.get("/products/:id", authMiddleware, ProductController.getById);
 router.post(
   "/products",
   authMiddleware,
@@ -39,7 +39,12 @@ router.delete("/products/:id", ProductController.remove);
 router.get("/users", authMiddleware, userController.getAll);
 router.get("/users/:id", authMiddleware, userController.getById);
 router.post("/users", authMiddleware, userController.create);
-router.put("/users/:id", authMiddleware, userController.update);
+router.put(
+  "/users/:id",
+  authMiddleware,
+  uploadMiddleware,
+  userController.update
+);
 router.delete("/users/:id", authMiddleware, userController.remove);
 
 //pesananan routes
