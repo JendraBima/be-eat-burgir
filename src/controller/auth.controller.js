@@ -106,24 +106,26 @@ export default {
 
   async AuthMe(req, res) {
     try {
-      const { data, error } = await supabase.auth.getUser();
+      const authUser = req.user;
 
-      if (error) {
-        console.error("Error Mengambil Data User:", error.message);
-        return res.status(500).json({
+      if (!authUser?.id) {
+        return res.status(401).json({
           status: false,
-          pesan: "Internal Server Error",
+          pesan: "Unauthorized",
         });
       }
 
-      const {data:userData, error:userError} = await supabase
+      const { data: userData, error: userError } = await supabase
         .from("users")
         .select("*")
-        .eq("id", data.user.id)
+        .eq("id", authUser.id)
         .single();
 
       if (userError) {
-        console.error("Error Mengambil Data User dari tabel users:", userError.message);
+        console.error(
+          "Error Mengambil Data User dari tabel users:",
+          userError.message
+        );
         return res.status(500).json({
           status: false,
           pesan: "Internal Server Error",

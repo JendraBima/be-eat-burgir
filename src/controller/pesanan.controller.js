@@ -10,7 +10,7 @@ export default {
     const { data, error } = await supabase
       .from("pesanan")
       .select(`*, users(name, phone, address, image)`)
-      .order("created_at", { ascending: false });
+      .order("updated_at", { ascending: false , nullsFirst : false});
 
     if (error) {
       console.error("Error getAll:", error.message);
@@ -47,7 +47,7 @@ export default {
         .from("pesanan")
         .select(`*, users(name, phone, address, image)`)
         .eq("user_id", userId)
-        .order("created_at", { ascending: false });
+        .order("updated_at", { ascending: false, nullsFirst : false });
 
       if (error) {
         console.error("Error getMine:", error.message);
