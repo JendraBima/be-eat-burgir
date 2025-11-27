@@ -46,7 +46,7 @@ export default {
    * @param {import('express').Response} res
    */
   async AuthRegister(req, res) {
-    const { email, password } = req.body;
+    const { email, nama, password } = req.body;
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -56,6 +56,22 @@ export default {
       return res.status(401).json({
         status: false,
         pesan: error.message || "Terjadi kesalahan",
+      });
+    }
+
+    const {data:userProfile, error:userProfileError} = await supabase
+      .from("users")
+      .insert([
+        {
+          id: data.user.id,
+          name: nama,
+        },
+      ]);
+
+    if (userProfileError) {
+      return res.status(500).json({
+        status: false,
+        pesan: userProfileError.message || "Terjadi kesalahan pada pembuatan profil user",
       });
     }
 

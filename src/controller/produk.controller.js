@@ -57,7 +57,7 @@ export default {
     try {
       const { name, description, price, stock } = req.body;
 
-      const parsedPrice = parseFloat(price) || 0;
+      const parsedPrice = parseFloat(price) || 0;     
 
       let imageUrl = null;
 

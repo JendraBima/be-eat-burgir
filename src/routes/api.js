@@ -59,6 +59,8 @@ router.post("/pesanan", authMiddleware, pesananController.create);
 router.put("/pesanan/:id", authMiddleware, pesananController.update);
 router.delete("/pesanan/:id", authMiddleware, pesananController.remove);
 
+router.get("/my-pesanan", authMiddleware, pesananController.getMine);
+
 //review routes
 router.get("/produk_reviews", authMiddleware, reviewController.getAll);
 router.get("/produk_reviews/:id", authMiddleware, reviewController.getById);

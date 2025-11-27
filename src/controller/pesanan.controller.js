@@ -32,6 +32,50 @@ export default {
    * @param {import('express').Request} req
    * @param {import('express').Response} res
    */
+  async getMine(req, res) {
+    try {
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          status: false,
+          pesan: "User tidak ditemukan dalam request",
+        });
+      }
+
+      const { data, error } = await supabase
+        .from("pesanan")
+        .select(`*, users(name, phone, address, image)`)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error getMine:", error.message);
+        return res.status(500).json({
+          status: false,
+          pesan: "Gagal mengambil data pesanan user",
+          error: error.message,
+        });
+      }
+
+      return res.status(200).json({
+        status: true,
+        pesan: "Berhasil mengambil pesanan user",
+        data,
+      });
+    } catch (err) {
+      console.error("getMine Error:", err);
+      return res.status(500).json({
+        status: false,
+        pesan: "Terjadi kesalahan saat mengambil pesanan user",
+      });
+    }
+  },
+
+  /**
+   * @param {import('express').Request} req
+   * @param {import('express').Response} res
+   */
   async getById(req, res) {
     const { id } = req.params;
     const { data, error } = await supabase
@@ -61,10 +105,19 @@ export default {
    */
   async create(req, res) {
     const { status, total_amount } = req.body;
+    const userId = req.user?.id;
 
     const { data, error } = await supabase
       .from("pesanan")
-      .insert([{ status, total_amount }])
+      .insert([
+        {
+          user_id: userId,
+          status,
+          total_amount,
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      ])
       .select();
 
     if (error) {

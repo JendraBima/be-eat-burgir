@@ -98,7 +98,7 @@ export default {
         updated_at: new Date(),
       })
       .eq("id", id)
-      .select();
+      .select('*, users(name, phone), products(name, price, image)');
 
     if (error) {
       console.error("Error update:", error.message);
